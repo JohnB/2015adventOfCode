@@ -50,74 +50,86 @@ end
 
 ```elixir
 defmodule Day06 do
-  @vowels ~r/a|e|i|o|u/
-  @doubles ~r/aa|bb|cc|dd|ee|ff|gg|hh|ii|jj|kk|ll|mm|nn|oo|pp|qq|rr|ss|tt|uu|vv|ww|xx|yy|zz/
-  @bad_pairs ~r/ab|cd|pq|xy/
-
-  def bad_line?(line) do
-    vowel_count = Regex.scan(@vowels, line) |> Enum.count()
-    cond do
-      line =~ @bad_pairs -> true
-      vowel_count < 3 -> true
-      true -> not (line =~ @doubles)
-    end
-  end
-  
+  @p1_grid_size 1000
   def solve1(text) do
     text
     |> AOC.as_single_lines()
-    |> Enum.reduce(0, fn line, acc ->
-      if bad_line?(line) do
-        IO.puts("bad:  #{line}")
-        acc
-      else
-        IO.puts("good: #{line}")
-        acc + 1
+    |> Enum.reduce(MapSet.new(), fn line, set ->
+      [[_, x1, y1, x2, y2]] = Regex.scan(~r/(\d+),(\d+) through (\d+),(\d+)/, line)
+      [x1, y1, x2, y2] = Enum.map([x1, y1, x2, y2], fn n -> String.to_integer(n) end)
+      rectangle = for x <- x1..x2, y <- y1..y2 do 
+          x * @p1_grid_size + y 
+        end
+        |> MapSet.new()
+        # |> IO.inspect()
+      cond do
+        line =~ "turn on" -> 
+          MapSet.union(set, rectangle)
+        line =~ "turn off" -> 
+          Enum.reduce(rectangle, set, fn item, acc -> MapSet.delete(acc, item) end)
+        line =~ "toggle" ->
+          Enum.reduce(rectangle, set, fn item, acc ->
+            if MapSet.member?(acc, item) do
+              MapSet.delete(acc, item)
+            else
+              MapSet.put(acc, item)
+            end
+          end)
       end
+      # |> IO.inspect()
     end)
-  end
-
-  def bad_line2?(line) do
-    separated_dupes? = Regex.match?(~r/(.).(\1)/, line)
-    separated_pairs? = Regex.match?(~r/(..).*(\1)/, line)
-
-    !separated_dupes? || !separated_pairs?
+    |> Enum.count()
   end
 
   def solve2(text) do
     text
     |> AOC.as_single_lines()
-    |> Enum.reduce(0, fn line, acc ->
-      if bad_line2?(line) do
-        IO.puts("bad:  #{line}")
-        acc
-      else
-        IO.puts("good: #{line}")
-        acc + 1
+    |> Enum.reduce(%{}, fn line, set ->
+      [[_, x1, y1, x2, y2]] = Regex.scan(~r/(\d+),(\d+) through (\d+),(\d+)/, line)
+      [x1, y1, x2, y2] = Enum.map([x1, y1, x2, y2], fn n -> String.to_integer(n) end)
+      rectangle = for x <- x1..x2, y <- y1..y2 do 
+          x * @p1_grid_size + y 
+        end
+      cond do
+        line =~ "turn on" -> 
+          Enum.reduce(rectangle, set, fn item, acc ->
+            Map.put(acc, item, (acc[item] || 0) + 1)
+          end)
+        line =~ "turn off" -> 
+          Enum.reduce(rectangle, set, fn item, acc ->
+            if (acc[item] || 0) > 1 do
+              Map.put(acc, item, acc[item] - 1)
+            else
+              Map.delete(acc, item)
+            end
+          end)
+        line =~ "toggle" ->
+          Enum.reduce(rectangle, set, fn item, acc ->
+            Map.put(acc, item, (acc[item] || 0) + 2)
+          end)
       end
+      # |> IO.inspect()
     end)
+    |> Map.values()
+    |> Enum.sum()
   end
 end
 
 # Example data:
-# ugknbfddgicrmopn
-# aaa
-# jchzalrnumimnmhp
-# haegwjzuvuyypxyu
-# dvszwmarrgswjxmb
-# qjhvhtzxzqqjkmpb
-# xxyxx
-# uurcxstgmygtbstg
-# ieodomkazucvgmuy
+# turn on 4,5 through 5,9 (10 lights on brightness = 10)
+# turn off 3,3 through 4,8 (12 but only removes 4 brightness = 6)
+# turn off 4,8 through 8,9 (10 but only removes 3 brightness = 3)
+# toggle 5,9 through 8,9 (4 but only turns on 4 more with 2x more brightness = 19)
+# 19
 
-p1data.()
-|> Day06.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
-# 258
+# p1data.()
+# |> Day06.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 7)")
+# 543903
 
 p1data.()
 |> Day06.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-# 53
+|> IO.inspect(label: "\n*** Part 2 solution (example: 11)")
+# 14687245
 
 ```
