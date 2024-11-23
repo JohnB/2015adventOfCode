@@ -83,12 +83,16 @@ defmodule Day03 do
 
   def split_santa_from_robo_santa(list) do
     list
-    |> Enum.with_index() 
-    |> Enum.split_with(fn {_direction, index} -> Integer.is_even(index) end)
-    |> Tuple.to_list()
-    |> Enum.map(fn sublist ->
-      Enum.map(sublist, fn {direction, _index} -> direction end)
+    |> Enum.reduce([[],[]], fn direction, _acc = [left, right] ->
+      # Count the lists so I don't have to use with_index and then remove the index
+      if Enum.count(left) > Enum.count(right) do
+        [left, [direction | right]]
+      else
+        [[direction | left], right]
+      end
     end)
+    # Reverse them back to the original orderings
+    |> Enum.map(&Enum.reverse/1)
   end
 
   def solve2(text) do

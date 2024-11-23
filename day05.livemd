@@ -1,0 +1,123 @@
+<!-- vim: syntax=markdown -->
+
+# Day 05
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+
+IEx.Helpers.c("/Users/johnb/dev/2015adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+require Integer
+
+# Note: when making the next template, something like this works well:
+#   `cat day01.livemd | sed 's/01/02/' > day02.livemd`
+#
+```
+
+## Installation and Data
+
+```elixir
+input_p1example = Kino.Input.textarea("Example Data")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_p1puzzleInput = Kino.Input.textarea("Puzzle Input")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+p1data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_p1example)) ||
+    Kino.Input.read(input_p1puzzleInput)
+end
+```
+
+## Part 1
+
+```elixir
+defmodule Day05 do
+  @vowels ~r/a|e|i|o|u/
+  @doubles ~r/aa|bb|cc|dd|ee|ff|gg|hh|ii|jj|kk|ll|mm|nn|oo|pp|qq|rr|ss|tt|uu|vv|ww|xx|yy|zz/
+  @bad_pairs ~r/ab|cd|pq|xy/
+
+  def bad_line?(line) do
+    vowel_count = Regex.scan(@vowels, line) |> Enum.count()
+    cond do
+      line =~ @bad_pairs -> true
+      vowel_count < 3 -> true
+      true -> not (line =~ @doubles)
+    end
+  end
+  
+  def solve1(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.reduce(0, fn line, acc ->
+      if bad_line?(line) do
+        IO.puts("bad:  #{line}")
+        acc
+      else
+        IO.puts("good: #{line}")
+        acc + 1
+      end
+    end)
+  end
+
+  def bad_line2?(line) do
+    separated_dupes? = Regex.match?(~r/(.).(\1)/, line)
+    separated_pairs? = Regex.match?(~r/(..).*(\1)/, line)
+
+    !separated_dupes? || !separated_pairs?
+  end
+
+  def solve2(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.reduce(0, fn line, acc ->
+      if bad_line2?(line) do
+        IO.puts("bad:  #{line}")
+        acc
+      else
+        IO.puts("good: #{line}")
+        acc + 1
+      end
+    end)
+  end
+end
+
+# Example data:
+# ugknbfddgicrmopn
+# aaa
+# jchzalrnumimnmhp
+# haegwjzuvuyypxyu
+# dvszwmarrgswjxmb
+# qjhvhtzxzqqjkmpb
+# xxyxx
+# uurcxstgmygtbstg
+# ieodomkazucvgmuy
+
+p1data.()
+|> Day05.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
+# 258
+
+p1data.()
+|> Day05.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
+# 53
+
+```
