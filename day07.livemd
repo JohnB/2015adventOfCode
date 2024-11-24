@@ -11,6 +11,7 @@ IEx.Helpers.c("/Users/johnb/dev/2015adventOfCode/advent_of_code.ex")
 alias AdventOfCode, as: AOC
 alias Kino.Input
 require Integer
+use Bitwise
 
 # Note: when making the next template, something like this works well:
 #   `cat day01.livemd | sed 's/01/02/' > day02.livemd`
@@ -50,10 +51,111 @@ end
 
 ```elixir
 defmodule Day07 do
+  @max_int 65535
+  @final_destination "a"
+  
+  @and_op ~r/^(\w+) AND (\w+) -> (\w+)$/
+  @or_op ~r/^(\w+) OR (\w+) -> (\w+)$/
+  @lshift_op ~r/^(\w+) LSHIFT (\d+) -> (\w+)$/  
+  @rshift_op ~r/^(\w+) RSHIFT (\d+) -> (\w+)$/
+  @not_op ~r/^NOT (\w+) -> (\w+)$/
+  @set_op ~r/^(\d+) -> (\w+)$/
+  @copy_op ~r/^(\w+) -> (\w+)$/
 
-  def solve1(text) do
+  def parse_operations(text) do
     text
     |> AOC.as_single_lines()
+    |> Enum.reduce(%{}, fn line, acc ->
+      # IO.inspect(line)
+      cond do
+        # ordered from least-greedy to most-greedy
+        line =~ @and_op -> 
+          [[_, left, right, destination]] = Regex.scan(@and_op, line)
+          Map.put(acc, destination, %{op: @and_op, sources: [left, right]})
+        line =~ @or_op -> 
+          [[_, left, right, destination]] = Regex.scan(@or_op, line)
+          Map.put(acc, destination, %{op: @or_op, sources: [left, right]})
+        line =~ @lshift_op -> 
+          [[_, left, right, destination]] = Regex.scan(@lshift_op, line)
+          Map.put(acc, destination, %{op: @lshift_op, sources: [left], 
+            amount: String.to_integer(right)})
+        line =~ @rshift_op -> 
+          [[_, left, right, destination]] = Regex.scan(@rshift_op, line)
+          Map.put(acc, destination, %{op: @rshift_op, sources: [left], 
+            amount: String.to_integer(right)})
+        line =~ @not_op -> 
+          [[_, left, destination]] = Regex.scan(@not_op, line)
+          Map.put(acc, destination, %{op: @not_op, sources: [left]})
+        line =~ @set_op -> 
+          [[_, left, destination]] = Regex.scan(@set_op, line)
+          Map.put(acc, destination, %{op: @set_op, sources: [], 
+            amount: String.to_integer(left)})
+        line =~ @copy_op -> 
+          [[_, left, destination]] = Regex.scan(@copy_op, line)
+          Map.put(acc, destination, %{op: @copy_op, sources: [left]})
+      end
+    end)
+  end
+
+  def perform_op(results, ops, destination) do
+    cmd = ops[destination]
+    case cmd.op do
+      @and_op ->
+        [left, right] = cmd.sources
+        Map.put(results, destination, Bitwise.band(results[left], results[right]))
+      @or_op ->
+        [left, right] = cmd.sources
+        Map.put(results, destination, Bitwise.bor(results[left], results[right]))
+      @lshift_op ->
+        [source] = cmd.sources
+        Map.put(results, destination, Bitwise.bsl(results[source], cmd.amount))
+      @rshift_op ->
+        [source] = cmd.sources
+        Map.put(results, destination, Bitwise.bsr(results[source], cmd.amount))
+      @not_op ->
+        [source] = cmd.sources
+        Map.put(results, destination, @max_int - results[source])
+      @set_op ->
+        Map.put(results, destination, cmd.amount)
+      @copy_op ->
+        [source] = cmd.sources
+        Map.put(results, destination, results[source])
+    end
+  end
+  
+  def solve1(text) do
+    operations = parse_operations(text)
+    # Some commands use a literal number "1" so make sure we map it to 1.
+    literals = Enum.reduce(operations, %{}, fn {_dest, cmd}, acc ->
+      Enum.reduce(cmd.sources, acc, fn source, acc1 ->
+        if source =~ ~r/^\d+/ do
+          Map.put(acc1, source, String.to_integer(source))
+        else
+          acc1
+        end
+      end)
+    end)
+    |> IO.inspect()
+    
+    # Iterate thru all the operations, setting what we can, until the one we want is set.
+    # worst case: finalize one value per scan thru the ops.
+    Enum.reduce_while(1..Enum.count(operations), literals, fn _iteration, results ->
+      updated_results = Enum.reduce(operations, results, fn {dest, cmd}, acc ->
+        cond do
+          !is_nil(acc[dest]) -> acc
+          Enum.any?(cmd.sources, fn source -> is_nil(acc[source]) end) -> acc
+          true -> perform_op(acc, operations, dest)
+        end
+        # |> IO.inspect()
+      end)
+      # |> IO.inspect(label: "#{iteration}")
+      
+      if is_nil(updated_results[@final_destination]) do
+        {:cont, updated_results} 
+      else
+        {:halt, updated_results[@final_destination]}
+      end
+    end)
   end
 
   def solve2(text) do
@@ -63,15 +165,24 @@ defmodule Day07 do
 end
 
 # Example data:
+# i -> a
+# 123 -> x
+# 456 -> y
+# x AND y -> d
+# x OR y -> e
+# x LSHIFT 2 -> f
+# y RSHIFT 2 -> g
+# NOT x -> h
+# NOT y -> i
 
 p1data.()
 |> Day07.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 65079)")
+# 16076
 
-p1data.()
-|> Day07.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-# 
+# p1data.()
+# |> Day07.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
+#
 
 ```
