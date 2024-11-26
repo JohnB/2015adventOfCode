@@ -122,11 +122,10 @@ defmodule Day07 do
         Map.put(results, destination, results[source])
     end
   end
-  
-  def solve1(text) do
-    operations = parse_operations(text)
+
+  def add_literals(operations) do
     # Some commands use a literal number "1" so make sure we map it to 1.
-    literals = Enum.reduce(operations, %{}, fn {_dest, cmd}, acc ->
+    Enum.reduce(operations, %{}, fn {_dest, cmd}, acc ->
       Enum.reduce(cmd.sources, acc, fn source, acc1 ->
         if source =~ ~r/^\d+/ do
           Map.put(acc1, source, String.to_integer(source))
@@ -135,8 +134,9 @@ defmodule Day07 do
         end
       end)
     end)
-    |> IO.inspect()
-    
+  end
+
+  def solve_for(operations, literals, final_destination) do
     # Iterate thru all the operations, setting what we can, until the one we want is set.
     # worst case: finalize one value per scan thru the ops.
     Enum.reduce_while(1..Enum.count(operations), literals, fn _iteration, results ->
@@ -150,17 +150,26 @@ defmodule Day07 do
       end)
       # |> IO.inspect(label: "#{iteration}")
       
-      if is_nil(updated_results[@final_destination]) do
+      if is_nil(updated_results[final_destination]) do
         {:cont, updated_results} 
       else
-        {:halt, updated_results[@final_destination]}
+        {:halt, updated_results[final_destination]}
       end
     end)
   end
+  
+  def solve1(text) do
+    operations = parse_operations(text)
+    literals = add_literals(operations)
+    solve_for(operations, literals, @final_destination)
+  end
 
   def solve2(text) do
-    text
-    |> AOC.as_single_lines()
+    operations = parse_operations(text)
+    literals = add_literals(operations)
+    result = solve_for(operations, literals, @final_destination)
+
+    solve_for(operations, Map.put(literals, "b", result), @final_destination)
   end
 end
 
@@ -175,14 +184,14 @@ end
 # NOT x -> h
 # NOT y -> i
 
-p1data.()
-|> Day07.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 65079)")
+# p1data.()
+# |> Day07.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 65079)")
 # 16076
 
-# p1data.()
-# |> Day07.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-#
+p1data.()
+|> Day07.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 65079 again because 'b' is not used)")
+# 2797
 
 ```

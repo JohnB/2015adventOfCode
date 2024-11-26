@@ -51,28 +51,76 @@ end
 
 ```elixir
 defmodule Day09 do
-
-  def solve1(text) do
+  def parse_routes(text) do
     text
     |> AOC.as_single_lines()
+    |> Enum.reduce(%{}, fn line, acc ->
+      [[_, location1, location2, distance]] = Regex.scan(~r/(\w+) to (\w+) = (\d+)/, line)
+      cost = String.to_integer(distance)
+
+      acc
+      |> Map.put_new(location1, %{})
+      |> Map.put_new(location2, %{})
+      |> put_in([location1, location2], cost)
+      |> put_in([location2, location1], cost)      
+      # |> IO.inspect()
+    end)
+  end
+
+  # Header
+  def enumerate_paths(routes, future_locations, _path \\ [], cost \\ 0)
+  # Completion
+  def enumerate_paths(_routes, _future_locations = [], path, cost) do
+    {cost, Enum.join(path, " -> ")}
+  end
+  # Entry point
+  # def enumerate_paths(routes, future_locations \\ Map.keys(routes), _path \\ [], cost \\ 0) do
+  def enumerate_paths(routes, future_locations, _path = [], cost) do
+    Enum.map(future_locations, fn location -> 
+      enumerate_paths(routes, future_locations -- [location], [location], cost)
+    end)
+  end
+  # Workhorse
+  def enumerate_paths(routes, future_locations, path, cost) do
+    Enum.map(future_locations, fn location -> 
+      enumerate_paths(routes, future_locations -- [location], path ++ [location], 
+        cost + routes[List.last(path)][location])
+    end)
+  end
+
+  def find_all_paths(text) do
+    routes = parse_routes(text)
+    enumerate_paths(routes, Map.keys(routes))
+    |> List.flatten()
+    |> Enum.sort_by(fn {cost, _path} -> cost end)
+  end
+
+  def solve1(text) do
+    find_all_paths(text)
+    |> List.first()
   end
 
   def solve2(text) do
-    text
-    |> AOC.as_single_lines()
+    find_all_paths(text)
+    |> List.last()
   end
 end
 
 # Example data:
-
+# London to Dublin = 464
+# London to Belfast = 518
+# Dublin to Belfast = 141
+  
 p1data.()
 |> Day09.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 605)")
+# 157 is too high (3+50+9+21+12+22+40) manually on paper
+# 155 by hand with better sorting (3+28+22+12+21+9+60)
+# 141 
 
 p1data.()
 |> Day09.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-#
+|> IO.inspect(label: "\n*** Part 2 solution (example: 982)")
+# 736
 
 ```
