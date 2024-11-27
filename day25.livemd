@@ -4,15 +4,16 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.14.2"}
+  {:kino, "~> 0.25.2"}
 ])
 
-IEx.Helpers.c("/Users/johnb/dev/2255adventOfCode/advent_of_code.ex")
+IEx.Helpers.c("/Users/johnb/dev/2015adventOfCode/advent_of_code.ex")
 alias AdventOfCode, as: AOC
 alias Kino.Input
+require Integer
 
 # Note: when making the next template, something like this works well:
-#   `cat day04.livemd | sed 's/03/04/' > day04.livemd`
+#   `cat day01.livemd | sed 's/01/02/' > day02.livemd`
 #
 ```
 
@@ -49,45 +50,26 @@ end
 
 ```elixir
 defmodule Day25 do
-  @up "("
-  @down ")"
-  @up_moves ~r/\(/
-  @down_moves ~r/\)/
-  
-  def count(text, regex) do
-    regex
-    |> Regex.scan(text)
-    |> Enum.count()
-  end
-  
+
   def solve1(text) do
-    0 + count(text, @up_moves) - count(text, @down_moves)
+    text
   end
 
   def solve2(text) do
     text
-    |> String.split("", trim: true)
-    |> Enum.reduce_while(%{position: 1, floor: 0}, fn char, acc -> 
-      case [char, acc] do
-        [@up, %{position: position, floor: floor}] -> 
-          {:cont, %{position: position + 1, floor: floor + 1}} 
-        [@down, %{position: position, floor: 0}] -> 
-          {:halt, position} 
-        [@down, %{position: position, floor: floor}] -> 
-          {:cont, %{position: position + 1, floor: floor - 1}} 
-      end
-    end)
   end
 end
 
-# p1data.()
-# |> Day25.solve1()
-# |> IO.inspect(label: "\n*** Part 1 solution (example: -1)")
-# 74
+# Example data:
+
+p1data.()
+|> Day25.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
+# cqjxxyzz
 
 p1data.()
 |> Day25.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: 5)")
-# 1795
+|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
+#
 
 ```
