@@ -7,7 +7,7 @@ Mix.install([
   {:kino, "~> 0.14.2"}
 ])
 
-IEx.Helpers.c("/Users/johnb/dev/2135adventOfCode/advent_of_code.ex")
+IEx.Helpers.c("/Users/johnb/dev/2015adventOfCode/advent_of_code.ex")
 alias AdventOfCode, as: AOC
 alias Kino.Input
 
@@ -49,45 +49,90 @@ end
 
 ```elixir
 defmodule Day13 do
-  @up "("
-  @down ")"
-  @up_moves ~r/\(/
-  @down_moves ~r/\)/
+  @pair_line ~r/(\w+) would (gain|lose) (\d+) happiness units by sitting next to (\w+)./
   
-  def count(text, regex) do
-    regex
-    |> Regex.scan(text)
-    |> Enum.count()
+  def parse_pairs(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.reduce(%{}, fn line, acc ->
+      [[_, who1, gainlose, digits, who2]] = Regex.scan(@pair_line, line)
+      cost = String.to_integer(digits)
+      cost = if gainlose =~ "lose" do
+        -cost
+      else
+        cost
+      end
+
+      acc
+      |> Map.put_new(who1, %{})
+      |> put_in([who1, who2], cost)
+      # |> IO.inspect()
+    end)
   end
+
+  # Header
+  def enumerate_seatings(pairs, unseated, _diners \\ [], cost \\ 0)
+  # Completion
+  def enumerate_seatings(pairs, _unseated = [], diners, cost) do
+    {cost + 
+      pairs[List.last(diners)][List.first(diners)] + 
+      pairs[List.first(diners)][List.last(diners)], 
+      Enum.join(diners, " -> ")}
+  end
+  # Entry point
+  def enumerate_seatings(pairs, unseated, _diners = [], cost) do
+    Enum.map(unseated, fn next_diner -> 
+      enumerate_seatings(pairs, unseated -- [next_diner], [next_diner], cost)
+    end)
+  end
+  # Workhorse
+  def enumerate_seatings(pairs, unseated, diners, cost) do
+    Enum.map(unseated, fn next_diner -> 
+      enumerate_seatings(pairs, unseated -- [next_diner], diners ++ [next_diner], 
+        cost + pairs[List.last(diners)][next_diner] + pairs[next_diner][List.last(diners)])
+    end)
+  end
+
   
+  def find_all_seatings(text) do
+    pairs = parse_pairs(text)
+    
+    enumerate_seatings(pairs, Map.keys(pairs))
+    |> List.flatten()
+    |> Enum.sort_by(fn {cost, _seating} -> cost end)
+  end
+
   def solve1(text) do
-    0 + count(text, @up_moves) - count(text, @down_moves)
+    find_all_seatings(text)
+    |> List.last()
+  end
+
+  def add_yourself(seatings) do
+    Enum.reduce(Map.keys(seatings), Map.put_new(seatings, "me", %{}), fn guest, acc ->
+      acc
+      |> put_in(["me", guest], 0)
+      |> put_in([guest, "me"], 0)
+    end)
   end
 
   def solve2(text) do
-    text
-    |> String.split("", trim: true)
-    |> Enum.reduce_while(%{position: 1, floor: 0}, fn char, acc -> 
-      case [char, acc] do
-        [@up, %{position: position, floor: floor}] -> 
-          {:cont, %{position: position + 1, floor: floor + 1}} 
-        [@down, %{position: position, floor: 0}] -> 
-          {:halt, position} 
-        [@down, %{position: position, floor: floor}] -> 
-          {:cont, %{position: position + 1, floor: floor - 1}} 
-      end
-    end)
+    pairs = parse_pairs(text) |> add_yourself()
+    
+    enumerate_seatings(pairs, Map.keys(pairs))
+    |> List.flatten()
+    |> Enum.sort_by(fn {cost, _seating} -> cost end)
+    |> List.last()
   end
 end
 
-# p1data.()
-# |> Day13.solve1()
-# |> IO.inspect(label: "\n*** Part 1 solution (example: -1)")
-# 74
+p1data.()
+|> Day13.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 330)")
+# 709
 
 p1data.()
 |> Day13.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: 5)")
-# 1795
+# 668 (which seems odd that happieness would drop when I arrive)
 
 ```
