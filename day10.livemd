@@ -69,18 +69,31 @@ defmodule Day10 do
   end
 
   def solve1(text) do
-    text
-    |> IO.inspect()
+    IO.inspect([String.length(text), text])
 
-    Enum.reduce(1..40, text, fn _iteration, acc ->
-      look_and_say(acc)
+    Enum.reduce(1..40, text, fn iteration, acc ->
+      str = look_and_say(acc)
+      IO.inspect([iteration, Time.utc_now(), String.length(str)])
+      str
     end)
     # |> IO.inspect()
     |> String.length()
   end
+  
   def solve2(text) do
-    text
-    |> AOC.as_single_lines()
+    # Switch to a regex to make it much much faster
+    #.  https://stackoverflow.com/questions/47402863/regex-to-match-number-with-different-digits-and-minimum-length
+    Enum.reduce(1..50, text, fn iteration, acc ->
+      str = Regex.scan(~r/(\d)\1*(?!\1)/, acc) 
+        |> Enum.map(fn [match, char] -> 
+          "#{String.length(match)}#{char}" 
+        end) 
+        |> Enum.join()
+      
+      IO.inspect([iteration, Time.utc_now(), String.length(str)])
+      str 
+    end) 
+    |> String.length()
   end
 end
 
@@ -92,14 +105,14 @@ end
 # 111221
 # 312211
 
-p1data.()
-|> Day10.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 6 for 5 iterations, 82350 for 40 iterations)")
-#
-
 # p1data.()
-# |> Day10.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-#
+# |> Day10.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 6 for 5 iterations, 82350 for 40 iterations)")
+# 492982 after ~20 min 
+
+p1data.()
+|> Day10.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
+# 50 iterations... 6989950 in less than a minute
 
 ```
