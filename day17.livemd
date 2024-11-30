@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.17.2"}
+  {:kino, "~> 0.14.2"}
 ])
 
 IEx.Helpers.c("/Users/johnb/dev/2015adventOfCode/advent_of_code.ex")
@@ -50,9 +50,41 @@ end
 
 ```elixir
 defmodule Day17 do
+  def filter_inspect(list) do
+    list
+    |> Enum.reject(fn item -> item =~ "0x" end)
+    |> IO.inspect()
+  end
+  def count_permutations(max, _sizes, _steps) when max < 0, do: 0
+  def count_permutations(0, _sizes, steps) do
+    filter_inspect(steps)
+    1
+  end
+  def count_permutations(max, [last] = _sizes, steps) do
+    size = 1 #Float.floor(max / last) |> floor()
+    if max == last * size do
+      filter_inspect(steps ++ ["#{size}x#{last}"])
+      1
+    else
+      0
+    end
+  end
+  def count_permutations(max, [first | rest] = _sizes, steps) do
+    size = 1 #Float.floor(max / first) |> floor()
+    Enum.reduce(0..size, 0, fn count, acc ->
+      acc + count_permutations(max - first * count, rest, steps ++ ["#{count}x#{first}"])
+    end)
+  end
 
   def solve1(text) do
-    text
+    sizes = text
+    |> AOC.as_integers()
+    |> Enum.sort()
+    |> Enum.reverse()
+    |> IO.inspect(label: "sizes")
+
+    max = (Enum.count(sizes) == 5) && 25 || 150
+    count_permutations(max, sizes, [])
   end
 
   def solve2(text) do
@@ -65,11 +97,11 @@ end
 p1data.()
 |> Day17.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
-# cqjxxyzz
+# 1304
 
-p1data.()
-|> Day17.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
+# p1data.()
+# |> Day17.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
 #
 
 ```

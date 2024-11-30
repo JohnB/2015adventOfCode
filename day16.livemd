@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.16.2"}
+  {:kino, "~> 0.14.2"}
 ])
 
 IEx.Helpers.c("/Users/johnb/dev/2015adventOfCode/advent_of_code.ex")
@@ -50,13 +50,100 @@ end
 
 ```elixir
 defmodule Day16 do
+  @parse_sues ~r/Sue (\d+)\: (.*)/ 
+  @parse_thing ~r/(\w+)\: (\d+)/
+  
+  @parse_results ~r/(\w+)\: (\d+)/
+  @mfcsam_results """
+    children: 3
+    cats: 7
+    samoyeds: 2
+    pomeranians: 3
+    akitas: 0
+    vizslas: 0
+    goldfish: 5
+    trees: 3
+    cars: 2
+    perfumes: 1
+  """
+    |> AOC.as_single_lines()
+    |> Enum.reduce(%{}, fn line, acc ->
+      [[_, thing, count]] = Regex.scan(@parse_results, line)
+      Map.put_new(acc, thing, String.to_integer(count))
+    end)
+
+  def parse_sues(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.reduce(%{}, fn line, acc ->
+      [[_, sue_number, comma_separated_things]] = Regex.scan(@parse_sues, line)
+      things = String.split(comma_separated_things, ", ", trim: true)
+        |> Enum.reduce(%{}, fn thing, map ->
+          [[_, thing, count]] = Regex.scan(@parse_thing, thing)
+          Map.put_new(map, thing, String.to_integer(count))
+        end)
+      Map.put_new(acc, String.to_integer(sue_number), things)
+    end)
+  end
 
   def solve1(text) do
-    text
+    sues = parse_sues(text)
+
+    sues
+    |> Map.keys()
+    |> Enum.sort()
+    |> Enum.reduce(%{}, fn sue_number, acc ->
+      sue = sues[sue_number]
+
+      # IO.inspect([@mfcsam_results, sue])
+      maybe_the_right_sue = Enum.all?(@mfcsam_results, fn {item, count} -> 
+        # IO.inspect({item, count}, label: "Sue #{sue_number}")
+        cond do
+          is_nil(sue[item]) -> true
+          # (count == 0) && (sue[item] == 0) -> true
+          sue[item] == count -> true
+          true -> false
+        end
+      end)
+      if maybe_the_right_sue do
+        # IO.inspect([sue_number, sue])
+        Map.put_new(acc, sue_number, sue)
+      else
+        acc
+      end
+    end)
   end
 
   def solve2(text) do
-    text
+    sues = parse_sues(text)
+
+    sues
+    |> Map.keys()
+    |> Enum.sort()
+    |> Enum.reduce(%{}, fn sue_number, acc ->
+      sue = sues[sue_number]
+
+      # IO.inspect([@mfcsam_results, sue])
+      maybe_the_right_sue = Enum.all?(@mfcsam_results, fn {item, count} -> 
+        # IO.inspect({item, count}, label: "Sue #{sue_number}")
+        cond do
+          is_nil(sue[item]) -> true
+          (item in ["cats", "trees"]) && (sue[item] > count) -> true
+          (item in ["cats", "trees"]) -> false
+          (item in ["pomeranians", "goldfish"]) && (sue[item] < count) -> true
+          (item in ["pomeranians", "goldfish"]) -> false
+          # (count == 0) && (sue[item] == 0) -> true
+          sue[item] == count -> true
+          true -> false
+        end
+      end)
+      if maybe_the_right_sue do
+        # IO.inspect([sue_number, sue])
+        Map.put_new(acc, sue_number, sue)
+      else
+        acc
+      end
+    end)
   end
 end
 
@@ -64,12 +151,12 @@ end
 
 p1data.()
 |> Day16.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
-# cqjxxyzz
+|> IO.inspect(label: "\n*** Part 1 solution")
+# 373
 
 p1data.()
 |> Day16.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-#
+|> IO.inspect(label: "\n*** Part 2 solution")
+# 260
 
 ```
