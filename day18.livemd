@@ -46,22 +46,23 @@ p1data = fn ->
 end
 ```
 
-## Part 1
+## Solution
 
 ```elixir
 defmodule Day18 do
   @on "#"
   @off "."
 
-  def on_cells(grid, cell_ids) do
-    Enum.filter(cell_ids, fn cell_id -> grid[cell_id] == @on end)
-      |> Enum.count()
+  def count_on_cells(grid, cell_ids) do
+    cell_ids
+    |> Enum.filter(fn cell_id -> grid[cell_id] == @on end)
+    |> Enum.count()
   end
   
-  def on_or_off(grid, cell_id) do
+  def live_or_die?(grid, cell_id) do
     cell = grid[cell_id]
     neighbor_ids = AOC.neighbors8(grid, cell_id)
-    on_count = on_cells(grid, neighbor_ids)
+    on_count = count_on_cells(grid, neighbor_ids)
 
     case {cell, on_count} do
       {@on, 2} -> @on
@@ -70,27 +71,27 @@ defmodule Day18 do
       _ -> @off
     end
   end
+
   def iterate_life(grid) do
-    Enum.reduce(AOC.grid_cells(grid), grid, fn cell_id, acc ->
-      Map.put(acc, cell_id, on_or_off(grid, cell_id))
+    grid
+    |> AOC.grid_cells()
+    |> Enum.reduce(grid, fn cell_id, acc ->
+      Map.put(acc, cell_id, live_or_die?(grid, cell_id))
     end)
   end
 
   def solve1(text) do
     grid = AOC.as_grid(text)
-    # IO.puts("=== 0\n#{AOC.to_text_grid(grid)}")
     steps = (grid.grid_width < 20) && 4 || 100
 
-    updated = (1..steps)
-      |> Enum.reduce(grid, fn step, acc ->
+    updated = Enum.reduce((1..steps), grid, fn step, acc ->
         acc = iterate_life(acc)
         # IO.puts("=== #{step}")
         # IO.puts(AOC.to_text_grid(acc))
         acc
       end)
 
-    updated
-    |> on_cells(AOC.grid_cells(updated))
+    count_on_cells(updated, AOC.grid_cells(updated))
   end
 
   def corners_stuck_on(grid) do
@@ -102,11 +103,12 @@ defmodule Day18 do
   end
 
   def solve2(text) do
-    grid = AOC.as_grid(text)
-          |> corners_stuck_on()
-    # IO.puts("=== 0\n#{AOC.to_text_grid(grid)}")
+    grid = text
+      |> AOC.as_grid()
+      |> corners_stuck_on()
     steps = (grid.grid_width < 20) && 5 || 100
 
+    # IO.puts("=== 0\n#{AOC.to_text_grid(grid)}")
     updated = (1..steps)
       |> Enum.reduce(grid, fn step, acc ->
         acc = acc
@@ -118,8 +120,7 @@ defmodule Day18 do
       end)
       |> corners_stuck_on()
 
-    updated
-    |> on_cells(AOC.grid_cells(updated))
+    count_on_cells(updated, AOC.grid_cells(updated))
   end
 end
 
