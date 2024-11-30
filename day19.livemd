@@ -46,26 +46,72 @@ p1data = fn ->
 end
 ```
 
-## Part 1
+## Solution
 
 ```elixir
 defmodule Day19 do
   @replacement_parser ~r/(\w+) => (\w+)/
+
+  def parse_replacements(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.reduce( %{}, fn line, acc ->
+      [[_, start, replacement]] = Regex.scan(@replacement_parser, line)
+      
+      {_, acc} = get_and_update_in(acc[start], fn current ->
+        {current, (current || []) ++ [replacement]}
+      end)
+  
+      acc
+    end)
+  end
+
+  def enumerate_new_molecules(medicine, replacements) do
+    # IO.inspect([medicine, replacements], label: "19")
+    replacements
+    |> Enum.reduce(%{}, fn {source, dests}, acc ->
+      splits = String.split(medicine, source)
+      num_splits = Enum.count(splits)
+      # IO.inspect([source, num_splits, splits])
+      
+      dests
+      |> Enum.reduce(acc, fn dest, acc1 ->
+        [_left | rest] = Enum.with_index(splits)
+        # rest = Enum.with_index(splits)
+
+        rest
+        # |> IO.inspect(label: "with_index after zero")
+        |> Enum.reduce(acc1, fn {_split, index}, acc2 ->
+          prefix = Enum.slice(splits, 0..(index - 1)//1)
+            |> Enum.join(source)
+          center = dest # only replace one section at a time
+          ending = Enum.slice(splits, (index)..-1//1)
+            |> Enum.join(source)
+          new_molecule = [prefix, center, ending]
+            |> Enum.join("")
+          
+          # IO.inspect([dest, [index, prefix, center, ending], new_molecule, acc2[new_molecule]], label: "42")
+
+          {_, acc3} = get_and_update_in(acc2[new_molecule], fn current -> 
+            {current, (current || 0) + 1} 
+          end)
+          
+          acc3
+          # |> IO.inspect(label: "49")
+        end)
+      end)
+    end)
+  end
   
   def solve1(text) do
     [replacements, medicine] = AOC.as_doublespaced_paragraphs(text)
-    replacements = replacements
-      |> AOC.as_single_lines()
-      |> Enum.reduce( %{}, fn line, acc ->
-        [[_, start, replacement]] = Regex.scan(@replacement_parser, line)
-        
-        {_, acc} = get_and_update_in(acc[start], fn current ->
-          {current, (current || []) ++ [replacement]}
-        end)
-        acc
-      end)
+    replacements = parse_replacements(replacements)
+    molecules = enumerate_new_molecules(medicine, replacements)
 
-    IO.inspect([medicine, replacements])
+    # IO.inspect([medicine, replacements])
+    molecules
+    |> Map.keys()
+    |> Enum.count()
   end
 
   def solve2(text) do
@@ -74,11 +120,11 @@ defmodule Day19 do
 end
 
 # Example data:
+# HOHOHO
 
 p1data.()
 |> Day19.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
-# 
+|> IO.inspect(label: "\n*** Part 1 solution (example: 7 for HOHOHO)")
 
 # p1data.()
 # |> Day19.solve2()
