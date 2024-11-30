@@ -4,7 +4,7 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.18.2"}
+  {:kino, "~> 0.14.2"}
 ])
 
 IEx.Helpers.c("/Users/johnb/dev/2015adventOfCode/advent_of_code.ex")
@@ -50,26 +50,95 @@ end
 
 ```elixir
 defmodule Day18 do
+  @on "#"
+  @off "."
+
+  def on_cells(grid, cell_ids) do
+    Enum.filter(cell_ids, fn cell_id -> grid[cell_id] == @on end)
+      |> Enum.count()
+  end
+  
+  def on_or_off(grid, cell_id) do
+    cell = grid[cell_id]
+    neighbor_ids = AOC.neighbors8(grid, cell_id)
+    on_count = on_cells(grid, neighbor_ids)
+
+    case {cell, on_count} do
+      {@on, 2} -> @on
+      {@on, 3} -> @on
+      {@off, 3} -> @on
+      _ -> @off
+    end
+  end
+  def iterate_life(grid) do
+    Enum.reduce(AOC.grid_cells(grid), grid, fn cell_id, acc ->
+      Map.put(acc, cell_id, on_or_off(grid, cell_id))
+    end)
+  end
 
   def solve1(text) do
-    text
+    grid = AOC.as_grid(text)
+    # IO.puts("=== 0\n#{AOC.to_text_grid(grid)}")
+    steps = (grid.grid_width < 20) && 4 || 100
+
+    updated = (1..steps)
+      |> Enum.reduce(grid, fn step, acc ->
+        acc = iterate_life(acc)
+        # IO.puts("=== #{step}")
+        # IO.puts(AOC.to_text_grid(acc))
+        acc
+      end)
+
+    updated
+    |> on_cells(AOC.grid_cells(updated))
+  end
+
+  def corners_stuck_on(grid) do
+    grid
+    |> Map.put(0, @on)
+    |> Map.put(grid.grid_width - 1, @on)
+    |> Map.put(grid.last_cell - grid.grid_width + 1, @on)
+    |> Map.put(grid.last_cell, @on)
   end
 
   def solve2(text) do
-    text
+    grid = AOC.as_grid(text)
+          |> corners_stuck_on()
+    # IO.puts("=== 0\n#{AOC.to_text_grid(grid)}")
+    steps = (grid.grid_width < 20) && 5 || 100
+
+    updated = (1..steps)
+      |> Enum.reduce(grid, fn step, acc ->
+        acc = acc
+          |> iterate_life()
+          |> corners_stuck_on()
+        # IO.puts("=== #{step}")
+        # IO.puts(AOC.to_text_grid(acc))
+        acc
+      end)
+      |> corners_stuck_on()
+
+    updated
+    |> on_cells(AOC.grid_cells(updated))
   end
 end
 
 # Example data:
+# .#.#.#
+# ...##.
+# #....#
+# ..#...
+# #.#..#
+# ####..
 
 p1data.()
 |> Day18.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
-# cqjxxyzz
+|> IO.inspect(label: "\n*** Part 1 solution (example: 4)")
+# 1061
 
 p1data.()
 |> Day18.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-#
+|> IO.inspect(label: "\n*** Part 2 solution (example: 17)")
+# 1006
 
 ```

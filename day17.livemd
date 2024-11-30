@@ -50,45 +50,56 @@ end
 
 ```elixir
 defmodule Day17 do
-  def filter_inspect(list) do
-    list
-    |> Enum.reject(fn item -> item =~ "0x" end)
-    |> IO.inspect()
+  def filter_inspect(list, result) do
+    list = Enum.reject(list, fn item -> item =~ "0x" end)
+    # IO.inspect(list)
+    {_, updated} = Map.get_and_update(result, Enum.count(list), fn current ->
+        {current, (current || 0) + 1}
+      end)
+    updated 
+    # |> IO.inspect(label: "updated")
   end
-  def count_permutations(max, _sizes, _steps) when max < 0, do: 0
-  def count_permutations(0, _sizes, steps) do
-    filter_inspect(steps)
-    1
+  def count_permutations(max, _sizes, _steps, result) when max < 0, do: result
+  def count_permutations(0, _sizes, steps, result) do
+    filter_inspect(steps, result)
   end
-  def count_permutations(max, [last] = _sizes, steps) do
-    size = 1 #Float.floor(max / last) |> floor()
-    if max == last * size do
-      filter_inspect(steps ++ ["#{size}x#{last}"])
-      1
+  def count_permutations(max, [last] = _sizes, steps, result) do
+    if max == last do
+      filter_inspect(steps ++ ["1x#{last}"], result)
     else
-      0
+      result
     end
   end
-  def count_permutations(max, [first | rest] = _sizes, steps) do
-    size = 1 #Float.floor(max / first) |> floor()
-    Enum.reduce(0..size, 0, fn count, acc ->
-      acc + count_permutations(max - first * count, rest, steps ++ ["#{count}x#{first}"])
+  def count_permutations(max, [first | rest] = _sizes, steps, result) do
+    Enum.reduce(0..1, result, fn count, acc ->
+      count_permutations(max - first * count, rest, steps ++ ["#{count}x#{first}"], acc)
     end)
   end
 
-  def solve1(text) do
-    sizes = text
+  def parse_sizes(text) do
+    text
     |> AOC.as_integers()
     |> Enum.sort()
     |> Enum.reverse()
     |> IO.inspect(label: "sizes")
+  end
 
+  def solve1(text) do
+    sizes = parse_sizes(text)
     max = (Enum.count(sizes) == 5) && 25 || 150
-    count_permutations(max, sizes, [])
+    
+    count_permutations(max, sizes, [], %{})
+      |> Map.values()
+      |> Enum.sum()
   end
 
   def solve2(text) do
-    text
+    sizes = parse_sizes(text)
+    max = (Enum.count(sizes) == 5) && 25 || 150
+    
+    permutes = count_permutations(max, sizes, [], %{})
+    smallest_key = Enum.min(Map.keys(permutes)) |> IO.inspect(label: "smallest_key")
+    permutes[smallest_key]
   end
 end
 
@@ -96,12 +107,12 @@ end
 
 p1data.()
 |> Day17.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
+|> IO.inspect(label: "\n*** Part 1 solution (example: 4)")
 # 1304
 
-# p1data.()
-# |> Day17.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-#
+p1data.()
+|> Day17.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 3)")
+# 18
 
 ```
