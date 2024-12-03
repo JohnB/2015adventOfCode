@@ -67,20 +67,15 @@ defmodule Day19 do
   end
 
   def enumerate_new_molecules(medicine, replacements) do
-    # IO.inspect([medicine, replacements], label: "19")
     replacements
     |> Enum.reduce(%{}, fn {source, dests}, acc ->
       splits = String.split(medicine, source)
-      num_splits = Enum.count(splits)
-      # IO.inspect([source, num_splits, splits])
       
       dests
       |> Enum.reduce(acc, fn dest, acc1 ->
         [_left | rest] = Enum.with_index(splits)
-        # rest = Enum.with_index(splits)
 
         rest
-        # |> IO.inspect(label: "with_index after zero")
         |> Enum.reduce(acc1, fn {_split, index}, acc2 ->
           prefix = Enum.slice(splits, 0..(index - 1)//1)
             |> Enum.join(source)
@@ -90,14 +85,11 @@ defmodule Day19 do
           new_molecule = [prefix, center, ending]
             |> Enum.join("")
           
-          # IO.inspect([dest, [index, prefix, center, ending], new_molecule, acc2[new_molecule]], label: "42")
-
           {_, acc3} = get_and_update_in(acc2[new_molecule], fn current -> 
             {current, (current || 0) + 1} 
           end)
           
           acc3
-          # |> IO.inspect(label: "49")
         end)
       end)
     end)
@@ -108,27 +100,62 @@ defmodule Day19 do
     replacements = parse_replacements(replacements)
     molecules = enumerate_new_molecules(medicine, replacements)
 
-    # IO.inspect([medicine, replacements])
     molecules
     |> Map.keys()
     |> Enum.count()
   end
 
+  # %{key => [val1, val2]}
+  #   becomes
+  # %{val1 => key, val2 => key}
+  def reverse_replacements(replacements) do
+    Enum.reduce(replacements, %{}, fn {key, values}, acc ->
+      Enum.reduce(values, acc, fn value, acc1 ->
+        put_in(acc1, [value], key)
+      end)
+    end)
+  end
+  
   def solve2(text) do
-    text
+    [replacements, medicine] = AOC.as_doublespaced_paragraphs(text)
+    replacements = parse_replacements(replacements)
+
+    reversals = reverse_replacements(replacements)
+      |> Enum.sort_by(fn {key, _value} -> String.length(key) end, :desc)
+      |> Enum.map(fn {k, v} -> [k,v] end)
+
+    # Iterate thru all the replacements possible, starting at the longest.
+    Enum.reduce(1..300, {0, medicine}, fn _iteration, {replace_count, new_medicine} ->
+      reversals
+      |> Enum.reduce({replace_count, new_medicine}, fn [src, dest], {rep_count2, new_med2} ->
+        med = String.replace(new_med2, src, dest, global: false)
+        if med == new_med2 do
+          {rep_count2, new_med2}
+        else
+          {rep_count2 + 1, med}
+        end
+      end)
+    end)
   end
 end
 
 # Example data:
+# e => H
+# e => O
+# H => HO
+# H => OH
+# O => HH
+#
 # HOHOHO
 
 p1data.()
 |> Day19.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 7 for HOHOHO)")
+# 535
 
-# p1data.()
-# |> Day19.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-#
+p1data.()
+|> Day19.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 6)")
+# 212
 
 ```

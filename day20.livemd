@@ -4,7 +4,8 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.20.2"}
+  {:kino, "~> 0.14.2"},
+  {:math, "~> 0.7.0"}
 ])
 
 IEx.Helpers.c("/Users/johnb/dev/2015adventOfCode/advent_of_code.ex")
@@ -50,26 +51,60 @@ end
 
 ```elixir
 defmodule Day20 do
+  @presents_per_elf 10
+  @presents_per_elf_part2 11
+  
+  # factors_of/1 cribbed from:
+  #   https://github.com/tajacks/elixir-multitool/blob/main/lib/multitool/numbers/factors.ex
+  def factors_of(n) when is_integer(n) do
+    upper_range = floor(:math.sqrt(n))
+    factors = for x <- 1..upper_range, rem(n, x) == 0, do: [x, div(n, x)]
+    List.flatten(factors) |> Enum.dedup()
+  end
 
   def solve1(text) do
-    text
+    target = String.to_integer(text) / @presents_per_elf
+    t_over_e = floor(target / Math.e())
+    factors = factors_of(t_over_e)
+    IO.inspect([target, Math.log(target), t_over_e, Enum.sum(factors)])
+
+    Enum.each(floor(t_over_e / 2)..(2 * t_over_e), fn house_num ->
+      factors = factors_of(house_num)
+      factor_sum = Enum.sum(factors)
+      if factor_sum >= target do
+        IO.puts("SUCCESS! house_num=#{house_num}")
+        raise :done
+      end
+    end)
   end
 
   def solve2(text) do
-    text
+    target = String.to_integer(text) / @presents_per_elf_part2
+    t_over_e = floor(target / Math.e())
+    factors = factors_of(t_over_e)
+    IO.inspect([target, Math.log(target), t_over_e, Enum.sum(factors)])
+
+    Enum.each(floor(t_over_e / 2)..(2 * t_over_e), fn house_num ->
+      factors = factors_of(house_num)
+      factor_sum = Enum.sum(factors)
+      if factor_sum >= target do
+        IO.puts("SUCCESS! house_num=#{house_num}")
+        raise :done
+      end
+    end)
   end
 end
 
 # Example data:
 
-p1data.()
-|> Day20.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
-# cqjxxyzz
+# p1data.()
+# |> Day20.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
+# 831600
 
 p1data.()
 |> Day20.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
-#
+# 776160 is too low
 
 ```
