@@ -73,23 +73,24 @@ defmodule Day20 do
       factor_sum = Enum.sum(factors)
       if factor_sum >= target do
         IO.puts("SUCCESS! house_num=#{house_num}")
-        raise :done
+        raise String
       end
     end)
   end
 
   def solve2(text) do
-    target = String.to_integer(text) / @presents_per_elf_part2
-    t_over_e = floor(target / Math.e())
-    factors = factors_of(t_over_e)
-    IO.inspect([target, Math.log(target), t_over_e, Enum.sum(factors)])
+    target = ceil(String.to_integer(text) / @presents_per_elf_part2)
+    part1_answer = 831600
 
-    Enum.each(floor(t_over_e / 2)..(2 * t_over_e), fn house_num ->
-      factors = factors_of(house_num)
-      factor_sum = Enum.sum(factors)
-      if factor_sum >= target do
-        IO.puts("SUCCESS! house_num=#{house_num}")
-        raise :done
+    Enum.each(part1_answer..(2 * part1_answer), fn guess ->
+      presents = (guess
+        |> factors_of()
+        |> Enum.reject(fn x -> x < guess / 50 end)
+        |> Enum.sum()
+      )
+      if presents >= target do
+        IO.inspect([target, guess, presents], label: "Success at #{guess}!")
+        raise Integer
       end
     end)
   end
@@ -106,5 +107,6 @@ p1data.()
 |> Day20.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: 2)")
 # 776160 is too low
+# 856800 is also too low
 
 ```

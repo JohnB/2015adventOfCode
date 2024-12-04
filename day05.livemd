@@ -46,7 +46,7 @@ p1data = fn ->
 end
 ```
 
-## Part 1
+## Solution
 
 ```elixir
 defmodule Day05 do
